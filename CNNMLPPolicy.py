@@ -28,24 +28,14 @@ class CNNMLPFeatureExtractor(BaseFeaturesExtractor):
 
         assert self.input_dim == observation_space.shape[0], "Observation space size mismatch!"
 
-        # CNN for stable (2D -> 1D)
-        self.cnn_stable = th.nn.Sequential(
-            th.nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
+        num_in_channels = 1 + self.grid_contents_shape[-1] + 1  # stable + grid_contents + agent position
+        self.cnn_combined = th.nn.Sequential(
+            th.nn.Conv2d(num_in_channels, 32, kernel_size=3, padding=1),
             th.nn.ReLU(),
             th.nn.AdaptiveAvgPool2d(output_size=(4, 4)),
-            th.nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            th.nn.Conv2d(32, 64, kernel_size=3, padding=1),
             th.nn.ReLU(),
             th.nn.AdaptiveAvgPool2d(output_size=(2, 2))
-        )
-
-        # CNN for grid_contents (3D -> 1D)
-        self.cnn_grid_contents = th.nn.Sequential(
-            th.nn.Conv3d(self.grid_contents_shape[-1], 32, kernel_size=3, stride=1, padding=1),
-            th.nn.ReLU(),
-            th.nn.AdaptiveAvgPool3d(output_size=(4, 4, 4)),
-            th.nn.Conv3d(32, 64, kernel_size=3, stride=1, padding=1),
-            th.nn.ReLU(),
-            th.nn.AdaptiveAvgPool3d(output_size=(2, 2, 2))
         )
         # CNN for horse_list
         self.cnn_horse_list = th.nn.Sequential(
@@ -61,11 +51,14 @@ class CNNMLPFeatureExtractor(BaseFeaturesExtractor):
             f"Shape tensor generated for cnn_grid_contents: {(1, self.grid_contents_shape[-1], *self.grid_contents_shape[:-1])}")
 
         # Compute output dimensions dynamically
-        cnn_output_dim_stable = self.cnn_stable(th.zeros(1, 1, *self.stable_shape)).view(-1).shape[0]
-        cnn_output_dim_grid_contents = self.cnn_grid_contents(th.zeros(1, self.grid_contents_shape[-1],1, *self.grid_contents_shape[:-1])).view(-1).shape[0]
-        cnn_horse_list_out_size = self.cnn_horse_list(th.zeros(1, 8, self.horse_list_shape[0])).view(-1).shape[0]
+        cnn_output_dim_combined = self.cnn_combined(
+            th.zeros(1, num_in_channels, *self.stable_shape)
+        ).view(-1).shape[0]
+        cnn_horse_list_out_size = self.cnn_horse_list(
+            th.zeros(1, 8, self.horse_list_shape[0])
+        ).view(-1).shape[0]
         # MLP for other data
-        other_input_dim = self.agent_position_size + self.current_horse_index_size
+        other_input_dim = self.current_horse_index_size
         self.mlp_other = th.nn.Sequential(
             th.nn.Linear(other_input_dim, 64),
             th.nn.ReLU(),
@@ -75,7 +68,7 @@ class CNNMLPFeatureExtractor(BaseFeaturesExtractor):
 
         # Final MLP combining all features
         self.mlp = th.nn.Sequential(
-            th.nn.Linear(cnn_output_dim_stable + cnn_output_dim_grid_contents + cnn_horse_list_out_size + 32, 256),
+            th.nn.Linear(cnn_output_dim_combined + cnn_horse_list_out_size + 32, 256),
             th.nn.ReLU(),
             th.nn.Linear(256, features_dim),
             th.nn.ReLU()
@@ -94,8 +87,11 @@ class CNNMLPFeatureExtractor(BaseFeaturesExtractor):
 
         # Wyodrębnienie surowego tensora grid_contents ze spłaszczonego observation_space
         grid_contents = observations[:, start:end].view(
-            -1, self.grid_contents_shape[0], self.grid_contents_shape[1], self.grid_contents_shape[2]
-        ).permute(0, 3, 1, 2).unsqueeze(2)
+            -1,
+            self.grid_contents_shape[0],
+            self.grid_contents_shape[1],
+            self.grid_contents_shape[2],
+        ).permute(0, 3, 1, 2)
 
         # Extract other inputs
         horse_list_start = end
@@ -114,16 +110,22 @@ class CNNMLPFeatureExtractor(BaseFeaturesExtractor):
         # Prevent NaNs
         horse_list = th.nan_to_num(horse_list, nan=0.0)
 
+        # Create agent position channel
+        batch_size = observations.shape[0]
+        agent_channel = th.zeros((batch_size, 1, *self.stable_shape), device=observations.device)
+        agent_indices = agent_position.long()
+        agent_channel[th.arange(batch_size), 0, agent_indices[:, 0], agent_indices[:, 1]] = 1.0
+
         # CNN Processing
-        cnn_out_stable = th.flatten(self.cnn_stable(stable), start_dim=1)
-        cnn_out_grid_contents = th.flatten(self.cnn_grid_contents(grid_contents), start_dim=1)
+        combined = th.cat([stable, grid_contents, agent_channel], dim=1)
+        cnn_out_combined = th.flatten(self.cnn_combined(combined), start_dim=1)
         cnn_horse_list_out = self.cnn_horse_list(horse_list)
         # MLP Processing
-        other_inputs = th.cat([ agent_position, current_horse_index], dim=1)
+        other_inputs = current_horse_index
         mlp_other_out = self.mlp_other(other_inputs)
 
         # Combine features
-        final_input = th.cat([cnn_out_stable, cnn_out_grid_contents, cnn_horse_list_out,  mlp_other_out], dim=1)
+        final_input = th.cat([cnn_out_combined, cnn_horse_list_out, mlp_other_out], dim=1)
         return self.mlp(final_input)
 
 
