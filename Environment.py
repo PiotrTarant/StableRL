@@ -8,13 +8,15 @@ from Functions import encode_horse_list, encode_grid_contents
 
 
 class StableEnvironment(gym.Env):
-    def __init__(self, stable_list, horse_list):
+    def __init__(self, stable_list, horse_list, normalize_output=True):
         """
         Inicjalizacja środowiska.
         :param stable_list: Lista pól stajni (processed_data, wartości 1-10).
         :param horse_list: Data Frame z listą koni.
         """
         super(StableEnvironment, self).__init__()
+
+        self.normalize_output = normalize_output
 
         self.current_horse_index = 0
 
@@ -254,11 +256,11 @@ class StableEnvironment(gym.Env):
         print(f"Encoded grid_contents shape: {self.encoded_grid_contents.shape}")
         print(f"Original observation_space shape: {self.original_observation_space['grid_contents'].shape}")
 
-        flat_observation = flatten(self.original_observation_space,observation)
+        flat_observation = flatten(self.original_observation_space, observation)
 
-        self.update_normalization_stats(flat_observation)
-        flat_observation = self.normalize_observation(flat_observation)
-
+        if self.normalize_output:
+            self.update_normalization_stats(flat_observation)
+            flat_observation = self.normalize_observation(flat_observation)
 
         return flat_observation, {}
 
@@ -530,11 +532,23 @@ class StableEnvironment(gym.Env):
 
 
 
-        observation = flatten(self.original_observation_space ,{"stable": self.stable_list, "agent_position": self.agent_position, "horse_list": self.encoded_horse_list,"grid_contents": self.encoded_grid_contents, "current_horse_index": np.array([self.current_horse_index])})
-        # Dynamiczna aktualizacja statystyk
-        self.update_normalization_stats(observation)
-        self.update_reward_stats(reward)
-        observation = self.normalize_observation(observation)
-        reward = self.normalize_reward(reward)
+        observation = flatten(
+            self.original_observation_space,
+            {
+                "stable": self.stable_list,
+                "agent_position": self.agent_position,
+                "horse_list": self.encoded_horse_list,
+                "grid_contents": self.encoded_grid_contents,
+                "current_horse_index": np.array([self.current_horse_index]),
+            },
+        )
+
+        if self.normalize_output:
+            # Dynamiczna aktualizacja statystyk
+            self.update_normalization_stats(observation)
+            self.update_reward_stats(reward)
+            observation = self.normalize_observation(observation)
+            reward = self.normalize_reward(reward)
+
         truncated = False
         return observation, reward, done, truncated, {}
