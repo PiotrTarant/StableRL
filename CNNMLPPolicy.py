@@ -51,14 +51,16 @@ class CNNMLPFeatureExtractor(BaseFeaturesExtractor):
             f"Shape tensor generated for cnn_grid_contents: {(1, self.grid_contents_shape[-1], *self.grid_contents_shape[:-1])}")
 
         # Compute output dimensions dynamically
-        cnn_output_dim_combined = self.cnn_combined(
-            th.zeros(1, num_in_channels, *self.stable_shape)
-        ).view(-1).shape[0]
-        cnn_horse_list_out_size = self.cnn_horse_list(
-            th.zeros(1, 8, self.horse_list_shape[0])
-        ).view(-1).shape[0]
+        cnn_output_dim_combined = int(
+            self.cnn_combined(
+                th.zeros(1, num_in_channels, *self.stable_shape)
+            ).view(-1).shape[0]
+        )
+        cnn_horse_list_out_size = int(
+            self.cnn_horse_list(th.zeros(1, 8, self.horse_list_shape[0])).view(-1).shape[0]
+        )
         # MLP for other data
-        other_input_dim = self.current_horse_index_size
+        other_input_dim = int(self.current_horse_index_size)
         self.mlp_other = th.nn.Sequential(
             th.nn.Linear(other_input_dim, 64),
             th.nn.ReLU(),
