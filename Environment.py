@@ -65,8 +65,8 @@ class StableEnvironment(gym.Env):
             "horse_list": gym.spaces.Box(low=0, high=1, shape=self.encoded_horse_list.shape, dtype=np.float32),
             "grid_contents": gym.spaces.Box(low=0, high=1, shape=self.encoded_grid_contents.shape, dtype=np.float32),
             "current_horse_index": gym.spaces.Box(low=0, high=len(self.horse_list), shape=(1,), dtype=np.int32),
-
         })
+
         self.observation_space = flatten_space(self.original_observation_space)
 
         # Statystyki normalizacji
@@ -139,9 +139,14 @@ class StableEnvironment(gym.Env):
         print(f"Boks antydopingowy umieszczony na polu {position}.")
 
     def get_neighbors(self, position):
+        """
+        Pobiera pośrednich sąsiadów z uwzględnieniem korytarza (3).
+        :param position: Tuple (x, y) - współrzędne pola.
+        :return: Lista współrzędnych pośrednio sąsiadujących pól.
+        """
         x, y = position
         neighbors = []
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Kwestie kierunków: góra, dół, lewo, prawo
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
@@ -160,7 +165,7 @@ class StableEnvironment(gym.Env):
 
     def get_direct_neighbors(self, position):
         """
-        Pobiera bezpośrednich sąsiadów bez uwzględnienia pól o wartości 3.
+        Pobiera bezpośrednich sąsiadów.
         :param position: Tuple (x, y) - współrzędne pola.
         :return: Lista współrzędnych bezpośrednio sąsiadujących pól.
         """
@@ -340,12 +345,12 @@ class StableEnvironment(gym.Env):
                 # Sprawdzamy bezpośrednich sąsiadów (pomijając pole o wartości 3)
                 direct_neighbors = self.get_direct_neighbors((x, y))
 
-                # Nagroda za umieszczenie ważnego konia w stajni murowanej
-                if horse_data[7] == 1 and self.stable_list[x][y] == 2:
-                    reward += 2
 
                 # Nagroda za bliskie pola specjalne
                 if horse_data[7] == 1:
+                    # Nagroda za umieszczenie ważnego konia w stajni murowanej
+                    if self.stable_list[x][y] == 2:
+                        reward += 2
                     # Nagrody podstawowe
                     base_reward_5 = 1
                     base_reward_6 = 1

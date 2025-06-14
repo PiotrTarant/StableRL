@@ -16,8 +16,9 @@ def train_model_ppo(stable_list, horse_list, policy, policy_path=None):
                 policy_kwargs=dict(original_observation_space=env.original_observation_space),
                 normalize_advantage=True,
                 tensorboard_log="./ppo_tensorboard/")
-    model.policy.load_state_dict(PPO.load(policy_path, env=env).policy.state_dict())
-    print(f"Loaded policy from {policy_path}")
+
+    #model.policy.load_state_dict(PPO.load(policy_path, env=env).policy.state_dict())
+    #print(f"Loaded policy from {policy_path}")
 
     # Trening modelu
     iteration = 0
