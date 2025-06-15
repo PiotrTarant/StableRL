@@ -80,7 +80,7 @@ def encode_horse_list(horse_list):
     return encoded_horse_list
 
 
-def encode_grid_contents(grid_contents, grid_array=None, grid_size=(10, 10), max_horse_number=400, max_team=15):
+def encode_grid_contents(grid_contents, grid_array=None, grid_size=(10, 10), max_horse_number=400, max_team=15, encoders=None):
     """
     Funkcja kodująca dane grid_contents do tablicy NumPy z uwzględnieniem unikalnego numeru konia.
 
@@ -97,20 +97,14 @@ def encode_grid_contents(grid_contents, grid_array=None, grid_size=(10, 10), max
         num_features = 8  # Liczba cech: numer_konia, horse_id, player_id, gender, team, important
         grid_array = np.zeros((grid_size[0], grid_size[1], num_features), dtype=np.float32)
 
-    name_encoder = LabelEncoder()
-    surname_encoder = LabelEncoder()
-    country_encoder = LabelEncoder()
-    horse_name_encoder = LabelEncoder()
-    gender_mapping = {"Mare": 0, "Gelding": 1, "Stallion": 2}
+    if encoders is None:
+        raise ValueError("Encoders dictionary is required")
 
-    all_surnames = [content["data"][2] for content in grid_contents.values() if content["type"] == "horse"]
-    surname_encoder.fit(all_surnames)
-    all_countries = [content["data"][4] for content in grid_contents.values() if content["type"] == "horse"]
-    country_encoder.fit(all_countries)
-    all_horse_names = [content["data"][1] for content in grid_contents.values() if content["type"] == "horse"]
-    horse_name_encoder.fit(all_horse_names)
-    all_names = [content["data"][3] for content in grid_contents.values() if content["type"] == "horse"]
-    name_encoder.fit(all_names)
+    name_encoder = encoders["name"]
+    surname_encoder = encoders["surname"]
+    country_encoder = encoders["country"]
+    horse_name_encoder = encoders["horse_name"]
+    gender_mapping = {"Mare": 0, "Gelding": 1, "Stallion": 2}
 
 
     for (x, y), content in grid_contents.items():
