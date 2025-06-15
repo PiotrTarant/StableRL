@@ -52,7 +52,7 @@ def test_policy(model_path: str, stable_csv: str, horse_xls: str):
     start = time.time()
 
     while not done:
-        action, _ = model.predict(obs, deterministic=True)
+        action, _ = model.predict(obs, deterministic=False)
         obs, reward, done, truncated, _ = env.step(action)
         total_reward += float(reward)
 

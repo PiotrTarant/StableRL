@@ -20,8 +20,8 @@ stable_list = Functions.read_csv_stables_to_list(stable_file_path)
 env = StableEnvironment(stable_list, horse_list)
 show_env(env, horse_list, stable_list)
 
-#train_model_ppo(stable_list, horse_list, CNNMLPPolicy)
+train_model_ppo(stable_list, horse_list, CNNMLPPolicy)
 
-model_name = "model_PPO/stable_environment_gnn_4.zip"
-test_model_ppo(stable_list, horse_list, model_name)
+#model_name = "model_PPO/stable_environment_gnn_4.zip"
+#test_model_ppo(stable_list, horse_list, model_name)
 

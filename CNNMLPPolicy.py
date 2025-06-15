@@ -58,7 +58,7 @@ class CNNMLPFeatureExtractor(BaseFeaturesExtractor):
             th.zeros(1, 8, self.horse_list_shape[0])
         ).view(-1).shape[0]
         # MLP for other data
-        other_input_dim = self.current_horse_index_size
+        other_input_dim = int(self.current_horse_index_size)
         self.mlp_other = th.nn.Sequential(
             th.nn.Linear(other_input_dim, 64),
             th.nn.ReLU(),
