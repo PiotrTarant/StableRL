@@ -5,19 +5,17 @@ from Environment import StableEnvironment
 from ActionMaskWrapper import ActionMaskWrapper
 
 
-
 def train_model_ppo(stable_list, horse_list, policy, policy_path=None):
     # Disable internal normalization to use raw observations and rewards
-    env = ActionMaskWrapper(
-        StableEnvironment(stable_list, horse_list, normalize_output=False)
-    )
+    base_env = StableEnvironment(stable_list, horse_list)
+    env = ActionMaskWrapper(base_env)
 
     # last change ent_coef 0.2-> 0.1 vf_coef 1.5 -> 1
     # Tworzenie algorytmu PPO z hybrydową siecią CNN-MLP
     model = PPO(policy, env, verbose=1,
                 device='cuda', ent_coef=0.1, clip_range=0.2, vf_coef=1, gamma=0.98,
                 learning_rate=0.0003,
-                policy_kwargs=dict(original_observation_space=env.original_observation_space),
+                policy_kwargs=dict(original_observation_space=base_env.original_observation_space),
                 normalize_advantage=True,
                 tensorboard_log="./ppo_tensorboard/")
 

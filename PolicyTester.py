@@ -1,6 +1,6 @@
 import time
 from stable_baselines3 import PPO
-from CNNMLPPolicy import CNNMLPPolicy
+
 
 from Environment import StableEnvironment
 from Functions import read_csv_stables_to_list, read_xls_horses, save_grid_contents_to_excel
@@ -56,7 +56,7 @@ def _compute_adjacent_metrics(env):
         important_on_2,
     )
 
-    return stallion_pairs, mare_stallion_pairs, same_surname_pairs
+
 
 
 
@@ -75,7 +75,6 @@ def test_policy(model_path: str, stable_csv: str, horse_xls: str):
 
     while not done:
 
-        action, _ = model.predict(obs, deterministic=True)
         action, _ = model.predict(obs, deterministic=False)
         obs, reward, done, truncated, _ = env.step(action)
         total_reward += float(reward)
@@ -90,7 +89,6 @@ def test_policy(model_path: str, stable_csv: str, horse_xls: str):
         same_team,
         important_on_2,
     ) = _compute_adjacent_metrics(env)
-    stallions, mare_stallion, same_surname = _compute_adjacent_metrics(env)
 
     save_grid_contents_to_excel(env.grid_contents)
 
@@ -110,7 +108,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test trained PPO policy")
     parser.add_argument("--model", required=True, help="Path to the trained model")
     parser.add_argument("--stable", default="testowa_stajnia.csv", help="CSV file with stable layout")
-    parser.add_argument("--horses", default="test_lista_koni_20.xls", help="Excel file with horse list")
+    parser.add_argument("--horses", default="test_lista_koni_40.xls", help="Excel file with horse list")
     args = parser.parse_args()
 
     test_policy(args.model, args.stable, args.horses)

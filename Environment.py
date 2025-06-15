@@ -8,7 +8,7 @@ from Functions import encode_horse_list, encode_grid_contents
 
 
 class StableEnvironment(gym.Env):
-    def __init__(self, stable_list, horse_list, normalize_output=True):
+    def __init__(self, stable_list, horse_list):
         """
         Inicjalizacja środowiska.
         :param stable_list: Lista pól stajni (processed_data, wartości 1-10).
@@ -16,7 +16,7 @@ class StableEnvironment(gym.Env):
         """
         super(StableEnvironment, self).__init__()
 
-        self.normalize_output = normalize_output
+
 
         self.current_horse_index = 0
 
@@ -290,9 +290,7 @@ class StableEnvironment(gym.Env):
 
         flat_observation = flatten(self.original_observation_space, observation)
 
-        if self.normalize_output:
-            self.update_normalization_stats(flat_observation)
-            flat_observation = self.normalize_observation(flat_observation)
+
 
         info = {"action_mask": self.get_action_mask()}
 
@@ -325,11 +323,6 @@ class StableEnvironment(gym.Env):
                     "current_horse_index": np.array([self.current_horse_index]),
                 },
             )
-            if self.normalize_output:
-                self.update_normalization_stats(observation)
-                self.update_reward_stats(reward)
-                observation = self.normalize_observation(observation)
-                reward = self.normalize_reward(reward)
             info = {"action_mask": self.get_action_mask()}
             truncated = False
             return observation, reward, done, truncated, info
@@ -339,7 +332,7 @@ class StableEnvironment(gym.Env):
         # Lista akcji (0: dół, 1: góra, 2: lewo, 3: prawo, 4: umieść konia, 5: umieść boks leczący, 6: umieść boks antydopingowy)
         # Ruch agenta
         if action in [0, 1, 2, 3]:
-            # poruszanie sie jedynie po polach 1 i 2 dlaczego wczesniej na to nie wpadłem xd
+            # poruszanie sie jedynie po polach 1 i 2
             directions = {
                 0: (-1, 0),  # góra
                 1: (1, 0),  # dół
@@ -462,7 +455,7 @@ class StableEnvironment(gym.Env):
                             # Kara tylko dla bezpośrednich pól
                             if current_gender == "Stallion" and neighbor_data[5] == "Stallion":
                                 if current_last_name != neighbor_data[2] or current_first_name != neighbor_data[3]:
-                                    reward -= 10  # Kara za bezpośrednie sąsiedztwo ogierów z różnych zawodników
+                                    reward -= 5  # Kara za bezpośrednie sąsiedztwo ogierów z różnych zawodników
                             if (current_gender == "Stallion" and neighbor_data[5] == "Gelding") or \
                                     (current_gender == "Gelding" and neighbor_data[5] == "Stallion"):
                                 reward += 3  # Nagroda za ogiera obok wałacha
@@ -514,9 +507,9 @@ class StableEnvironment(gym.Env):
                         elif neighbor["type"] == "horse" and neighbor["data"][5] == "Gelding":
                             reward += 1
             elif self.healing_boxes_remaining == 0:
-                reward -= 10
+                reward -= 1
             else:
-                reward -= 5  # Kara za próbę umieszczenia boksu tam, gdzie nie można
+                reward -= 1  # Kara za próbę umieszczenia boksu tam, gdzie nie można
 
             target_x, target_y = self.find_closest_target(self.agent_position)
 
@@ -558,9 +551,9 @@ class StableEnvironment(gym.Env):
                         elif neighbor["type"] == "horse" and neighbor["data"][5] == "Gelding":
                             reward += 1
             elif self.antidoping_boxes_remaining == 0:
-                reward -= 10
+                reward -= 1
             else:
-                reward -= 5  # Kara za próbę niewłaściwego umieszczenia
+                reward -= 1  # Kara za próbę niewłaściwego umieszczenia
 
             target_x, target_y = self.find_closest_target(self.agent_position)
 
@@ -591,12 +584,6 @@ class StableEnvironment(gym.Env):
             },
         )
 
-        if self.normalize_output:
-            # Dynamiczna aktualizacja statystyk
-            self.update_normalization_stats(observation)
-            self.update_reward_stats(reward)
-            observation = self.normalize_observation(observation)
-            reward = self.normalize_reward(reward)
 
         truncated = False
         info = {"action_mask": self.get_action_mask()}
