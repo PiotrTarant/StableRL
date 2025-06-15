@@ -2,12 +2,15 @@ from stable_baselines3 import PPO
 import torch as th
 from CNNMLPPolicy import CNNMLPPolicy
 from Environment import StableEnvironment
+from ActionMaskWrapper import ActionMaskWrapper
 
 
 
 def train_model_ppo(stable_list, horse_list, policy, policy_path=None):
     # Disable internal normalization to use raw observations and rewards
-    env = StableEnvironment(stable_list, horse_list, normalize_output=False)
+    env = ActionMaskWrapper(
+        StableEnvironment(stable_list, horse_list, normalize_output=False)
+    )
 
     # last change ent_coef 0.2-> 0.1 vf_coef 1.5 -> 1
     # Tworzenie algorytmu PPO z hybrydową siecią CNN-MLP
