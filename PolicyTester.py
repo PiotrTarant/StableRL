@@ -1,6 +1,5 @@
 import time
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from CNNMLPPolicy import CNNMLPPolicy
 
 from Environment import StableEnvironment
@@ -44,9 +43,8 @@ def test_policy(model_path: str, stable_csv: str, horse_xls: str):
     stable_list = read_csv_stables_to_list(stable_csv)
     horse_list = read_xls_horses(horse_xls)
 
-    env = DummyVecEnv([lambda: StableEnvironment(stable_list, horse_list, normalize_output=False)])
-    env = VecNormalize.load("model_PPO/vec_normalize.pkl", env)
-    model = PPO.load(model_path, env=env)
+    env = StableEnvironment(stable_list, horse_list)
+    model = PPO.load(model_path)
 
     obs, _ = env.reset()
     done = False
