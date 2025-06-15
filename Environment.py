@@ -1,6 +1,7 @@
 import gymnasium as gym
 import numpy as np
 import math
+from sklearn.preprocessing import LabelEncoder
 
 from gymnasium.spaces import flatten_space, flatten
 
@@ -58,6 +59,14 @@ class StableEnvironment(gym.Env):
         self.max_horse_id = max(self.horse_list, key=lambda x: x[0])[0]
         self.max_horse_team = max(self.horse_list, key=lambda x: x[6])[6]
         self.encoded_horse_list = encode_horse_list(horse_list)
+        # Create label encoders once using full horse_list
+        self.encoders = {
+            "name": LabelEncoder().fit(horse_list["Imię"]),
+            "surname": LabelEncoder().fit(horse_list["Nazwisko"]),
+            "country": LabelEncoder().fit(horse_list["Kraj (Zawodnik)"]),
+            "horse_name": LabelEncoder().fit(horse_list["Nazwa"]),
+        }
+
         self.encoded_grid_contents = np.zeros((*self.grid_size, 8), dtype=np.float32)
 
         # Stan - informacje o stajni i pozycji agenta
@@ -370,7 +379,14 @@ class StableEnvironment(gym.Env):
                 # Umieszczenie konia na planszy
                 self.place_horse((x, y), horse_data)
                 self.horses_remaining -= 1
-                self.encoded_grid_contents = encode_grid_contents(self.grid_contents, self.encoded_grid_contents, self.grid_size, self.max_horse_id, self.max_horse_team)
+                self.encoded_grid_contents = encode_grid_contents(
+                    self.grid_contents,
+                    self.encoded_grid_contents,
+                    self.grid_size,
+                    self.max_horse_id,
+                    self.max_horse_team,
+                    self.encoders,
+                )
 
 
                 reward += 1  # Standardowa nagroda za umieszczenie konia
@@ -476,7 +492,14 @@ class StableEnvironment(gym.Env):
         elif action == 5:
             if self.healing_boxes_remaining > 0 and (x, y) not in self.grid_contents:
                 self.place_healing_box((x, y))
-                self.encoded_grid_contents = encode_grid_contents(self.grid_contents,self.encoded_grid_contents, self.grid_size, self.max_horse_id, self.max_horse_team)
+                self.encoded_grid_contents = encode_grid_contents(
+                    self.grid_contents,
+                    self.encoded_grid_contents,
+                    self.grid_size,
+                    self.max_horse_id,
+                    self.max_horse_team,
+                    self.encoders,
+                )
 
                 #reward += 5  # Nagroda za umieszczenie boksu leczącego
 
@@ -520,7 +543,14 @@ class StableEnvironment(gym.Env):
         elif action == 6:
             if self.antidoping_boxes_remaining > 0 and (x, y) not in self.grid_contents:
                 self.place_antidoping_box((x, y))
-                self.encoded_grid_contents = encode_grid_contents(self.grid_contents,self.encoded_grid_contents, self.grid_size, self.max_horse_id, self.max_horse_team)
+                self.encoded_grid_contents = encode_grid_contents(
+                    self.grid_contents,
+                    self.encoded_grid_contents,
+                    self.grid_size,
+                    self.max_horse_id,
+                    self.max_horse_team,
+                    self.encoders,
+                )
 
                 #reward += 5  # Nagroda za umieszczenie boksu antydopingowego
 
