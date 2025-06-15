@@ -227,6 +227,38 @@ class StableEnvironment(gym.Env):
         # Jeżeli żadne pole 1 lub 2 nie jest dostępne
         return start_position
 
+    def get_action_mask(self):
+        """Generuj maskę dostępnych akcji w aktualnym stanie."""
+        mask = [1] * 7
+
+        x, y = self.agent_position
+
+        # Ruchy
+        directions = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}
+        for act, (dx, dy) in directions.items():
+            nx, ny = x + dx, y + dy
+            valid = False
+            while 0 <= nx < self.grid_size[0] and 0 <= ny < self.grid_size[1]:
+                if self.stable_list[nx, ny] in [1, 2]:
+                    valid = True
+                    break
+                nx += dx
+                ny += dy
+            if not valid:
+                mask[act] = 0
+
+        if self.stable_list[x][y] not in [1, 2] or (x, y) in self.grid_contents:
+            mask[4] = mask[5] = mask[6] = 0
+        else:
+            if self.horses_remaining == 0:
+                mask[4] = 0
+            if self.healing_boxes_remaining == 0:
+                mask[5] = 0
+            if self.antidoping_boxes_remaining == 0:
+                mask[6] = 0
+
+        return np.array(mask, dtype=np.int8)
+
 
 
     def reset(self, **kwargs):
@@ -262,7 +294,9 @@ class StableEnvironment(gym.Env):
             self.update_normalization_stats(flat_observation)
             flat_observation = self.normalize_observation(flat_observation)
 
-        return flat_observation, {}
+        info = {"action_mask": self.get_action_mask()}
+
+        return flat_observation, info
 
 
     def step(self, action):
@@ -281,10 +315,24 @@ class StableEnvironment(gym.Env):
         if action in [4, 5, 6] and self.stable_list[x][y] not in [1, 2]:
             print("Akcja niedozwolona – agent nie może wykonać tej akcji na tym polu!")
             reward -= 3
-            if y > 0:  # Lewo
-                action = 2
-            elif y < self.grid_size[1] - 1:  # Prawo
-                action = 3
+            observation = flatten(
+                self.original_observation_space,
+                {
+                    "stable": self.stable_list,
+                    "agent_position": self.agent_position,
+                    "horse_list": self.encoded_horse_list,
+                    "grid_contents": self.encoded_grid_contents,
+                    "current_horse_index": np.array([self.current_horse_index]),
+                },
+            )
+            if self.normalize_output:
+                self.update_normalization_stats(observation)
+                self.update_reward_stats(reward)
+                observation = self.normalize_observation(observation)
+                reward = self.normalize_reward(reward)
+            info = {"action_mask": self.get_action_mask()}
+            truncated = False
+            return observation, reward, done, truncated, info
 
 
 
@@ -551,4 +599,5 @@ class StableEnvironment(gym.Env):
             reward = self.normalize_reward(reward)
 
         truncated = False
-        return observation, reward, done, truncated, {}
+        info = {"action_mask": self.get_action_mask()}
+        return observation, reward, done, truncated, info
