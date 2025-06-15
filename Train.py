@@ -25,4 +25,4 @@ def train_model_ppo(stable_list, horse_list, policy, policy_path=None):
     while True:
         iteration += 1
         model.learn(total_timesteps=50000, tb_log_name="run_1")
-        model.save(f"{"model_PPO"}/stable_environment_gnn_{iteration}")
+        model.save(f"model_PPO/stable_environment_gnn_{iteration}")
