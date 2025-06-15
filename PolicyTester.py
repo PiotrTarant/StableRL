@@ -1,9 +1,8 @@
 import time
-from MaskablePPO import MaskablePPO
+from stable_baselines3 import PPO
 
 
 from Environment import StableEnvironment
-from ActionMaskWrapper import ActionMaskWrapper
 from Functions import read_csv_stables_to_list, read_xls_horses, save_grid_contents_to_excel
 
 
@@ -66,8 +65,8 @@ def test_policy(model_path: str, stable_csv: str, horse_xls: str):
     stable_list = read_csv_stables_to_list(stable_csv)
     horse_list = read_xls_horses(horse_xls)
 
-    env = ActionMaskWrapper(StableEnvironment(stable_list, horse_list))
-    model = MaskablePPO.load(model_path, env=env)
+    env = StableEnvironment(stable_list, horse_list)
+    model = PPO.load(model_path)
 
     obs, _ = env.reset()
     done = False
