@@ -11,18 +11,20 @@ def _compute_adjacent_metrics(env):
     stallion_pairs = 0
     mare_stallion_pairs = 0
     same_surname_pairs = 0
+
     same_country_pairs = 0
     same_team_pairs = 0
     important_on_2 = 0
+
     checked = set()
 
     for position, content in env.grid_contents.items():
         if content["type"] != "horse":
             continue
         horse_data = content["data"]
+
         if horse_data[7] == 1 and env.original_stable_list[position[0]][position[1]] == 2:
             important_on_2 += 1
-
         for neighbor in env.get_neighbors(position):
             if neighbor not in env.grid_contents:
                 continue
@@ -54,6 +56,9 @@ def _compute_adjacent_metrics(env):
         important_on_2,
     )
 
+    return stallion_pairs, mare_stallion_pairs, same_surname_pairs
+
+
 
 def test_policy(model_path: str, stable_csv: str, horse_xls: str):
     """Run a trained policy and print evaluation metrics."""
@@ -69,7 +74,9 @@ def test_policy(model_path: str, stable_csv: str, horse_xls: str):
     start = time.time()
 
     while not done:
+
         action, _ = model.predict(obs, deterministic=True)
+        action, _ = model.predict(obs, deterministic=False)
         obs, reward, done, truncated, _ = env.step(action)
         total_reward += float(reward)
 
@@ -83,6 +90,7 @@ def test_policy(model_path: str, stable_csv: str, horse_xls: str):
         same_team,
         important_on_2,
     ) = _compute_adjacent_metrics(env)
+    stallions, mare_stallion, same_surname = _compute_adjacent_metrics(env)
 
     save_grid_contents_to_excel(env.grid_contents)
 

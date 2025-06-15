@@ -6,7 +6,8 @@ from Environment import StableEnvironment
 
 
 def train_model_ppo(stable_list, horse_list, policy, policy_path=None):
-    env = StableEnvironment(stable_list, horse_list)
+    # Disable internal normalization to use raw observations and rewards
+    env = StableEnvironment(stable_list, horse_list, normalize_output=False)
 
     # last change ent_coef 0.2-> 0.1 vf_coef 1.5 -> 1
     # Tworzenie algorytmu PPO z hybrydową siecią CNN-MLP
@@ -25,4 +26,4 @@ def train_model_ppo(stable_list, horse_list, policy, policy_path=None):
     while True:
         iteration += 1
         model.learn(total_timesteps=50000, tb_log_name="run_1")
-        model.save(f"{"model_PPO"}/stable_environment_gnn_{iteration}")
+        model.save(f"model_PPO/stable_environment_CNNMLP_{iteration}")
