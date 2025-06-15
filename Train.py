@@ -1,4 +1,5 @@
 from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 import torch as th
 from CNNMLPPolicy import CNNMLPPolicy
 from Environment import StableEnvironment
@@ -7,7 +8,10 @@ from Environment import StableEnvironment
 
 def train_model_ppo(stable_list, horse_list, policy, policy_path=None):
     # Disable internal normalization to use raw observations and rewards
-    env = StableEnvironment(stable_list, horse_list, normalize_output=False)
+    env = DummyVecEnv([
+        lambda: StableEnvironment(stable_list, horse_list, normalize_output=False)
+    ])
+    env = VecNormalize(env, norm_obs=True, norm_reward=True)
 
     # last change ent_coef 0.2-> 0.1 vf_coef 1.5 -> 1
     # Tworzenie algorytmu PPO z hybrydową siecią CNN-MLP
@@ -27,3 +31,4 @@ def train_model_ppo(stable_list, horse_list, policy, policy_path=None):
         iteration += 1
         model.learn(total_timesteps=50000, tb_log_name="run_1")
         model.save(f"model_PPO/stable_environment_CNNMLP_{iteration}")
+        env.save("model_PPO/vec_normalize.pkl")
