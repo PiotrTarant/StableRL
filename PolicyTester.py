@@ -11,12 +11,20 @@ def _compute_adjacent_metrics(env):
     stallion_pairs = 0
     mare_stallion_pairs = 0
     same_surname_pairs = 0
+
+    same_country_pairs = 0
+    same_team_pairs = 0
+    important_on_2 = 0
+
     checked = set()
 
     for position, content in env.grid_contents.items():
         if content["type"] != "horse":
             continue
         horse_data = content["data"]
+
+        if horse_data[7] == 1 and env.original_stable_list[position[0]][position[1]] == 2:
+            important_on_2 += 1
         for neighbor in env.get_neighbors(position):
             if neighbor not in env.grid_contents:
                 continue
@@ -34,8 +42,22 @@ def _compute_adjacent_metrics(env):
                 mare_stallion_pairs += 1
             if horse_data[2] == neigh_data[2]:
                 same_surname_pairs += 1
+            if horse_data[4] == neigh_data[4]:
+                same_country_pairs += 1
+            if horse_data[6] == neigh_data[6]:
+                same_team_pairs += 1
+
+    return (
+        stallion_pairs,
+        mare_stallion_pairs,
+        same_surname_pairs,
+        same_country_pairs,
+        same_team_pairs,
+        important_on_2,
+    )
 
     return stallion_pairs, mare_stallion_pairs, same_surname_pairs
+
 
 
 def test_policy(model_path: str, stable_csv: str, horse_xls: str):
@@ -52,12 +74,22 @@ def test_policy(model_path: str, stable_csv: str, horse_xls: str):
     start = time.time()
 
     while not done:
+
+        action, _ = model.predict(obs, deterministic=True)
         action, _ = model.predict(obs, deterministic=False)
         obs, reward, done, truncated, _ = env.step(action)
         total_reward += float(reward)
 
     duration = time.time() - start
 
+    (
+        stallions,
+        mare_stallion,
+        same_surname,
+        same_country,
+        same_team,
+        important_on_2,
+    ) = _compute_adjacent_metrics(env)
     stallions, mare_stallion, same_surname = _compute_adjacent_metrics(env)
 
     save_grid_contents_to_excel(env.grid_contents)
@@ -67,6 +99,9 @@ def test_policy(model_path: str, stable_csv: str, horse_xls: str):
     print(f"Ogiery obok siebie: {stallions}")
     print(f"Klacze obok ogierów: {mare_stallion}")
     print(f"Konie o tym samym nazwisku obok siebie: {same_surname}")
+    print(f"Zawodnicy z tego samego kraju obok siebie: {same_country}")
+    print(f"Zawodnicy z tego samego zespołu obok siebie: {same_team}")
+    print(f"Ważni zawodnicy na polu 2: {important_on_2}")
 
 
 if __name__ == "__main__":
