@@ -8,13 +8,16 @@ from Functions import encode_horse_list, encode_grid_contents
 
 
 class StableEnvironment(gym.Env):
-    def __init__(self, stable_list, horse_list):
+    def __init__(self, stable_list, horse_list, verbose=False):
         """
         Inicjalizacja środowiska.
         :param stable_list: Lista pól stajni (processed_data, wartości 1-10).
         :param horse_list: Data Frame z listą koni.
+        :param verbose: Czy wyświetlać dodatkowe informacje podczas działania
+            środowiska.
         """
         super(StableEnvironment, self).__init__()
+        self.verbose = verbose
 
 
 
@@ -112,7 +115,8 @@ class StableEnvironment(gym.Env):
         if position in self.grid_contents:
             raise ValueError(f"Pole {position} jest już zajęte przez {self.grid_contents[position]}")
         self.grid_contents[position] = {"type": "horse", "data": horse_data}
-        print(f"Koń {horse_data} umieszczony na polu {position}.")
+        if self.verbose:
+            print(f"Koń {horse_data} umieszczony na polu {position}.")
 
     def place_healing_box(self, position):
         """
@@ -124,8 +128,8 @@ class StableEnvironment(gym.Env):
         self.grid_contents[position] = {"type": "healing_box"}
         self.healing_boxes_remaining -= 1
 
-
-        print(f"Boks leczący umieszczony na polu {position}.")
+        if self.verbose:
+            print(f"Boks leczący umieszczony na polu {position}.")
 
     def place_antidoping_box(self, position):
         """
@@ -137,8 +141,8 @@ class StableEnvironment(gym.Env):
         self.grid_contents[position] = {"type": "antidoping_box"}
         self.antidoping_boxes_remaining -= 1
 
-
-        print(f"Boks antydopingowy umieszczony na polu {position}.")
+        if self.verbose:
+            print(f"Boks antydopingowy umieszczony na polu {position}.")
 
     def get_neighbors(self, position):
         """
@@ -285,8 +289,9 @@ class StableEnvironment(gym.Env):
             "current_horse_index": np.array([self.current_horse_index], dtype=np.int32),
         }
 
-        print(f"Encoded grid_contents shape: {self.encoded_grid_contents.shape}")
-        print(f"Original observation_space shape: {self.original_observation_space['grid_contents'].shape}")
+        if self.verbose:
+            print(f"Encoded grid_contents shape: {self.encoded_grid_contents.shape}")
+            print(f"Original observation_space shape: {self.original_observation_space['grid_contents'].shape}")
 
         flat_observation = flatten(self.original_observation_space, observation)
 
@@ -306,12 +311,14 @@ class StableEnvironment(gym.Env):
 
         if isinstance(action, np.ndarray):
             action = action.item()  # Konwertowanie na int
-        print("Received action:", action, "Type:", type(action))
+        if self.verbose:
+            print("Received action:", action, "Type:", type(action))
         x, y = self.agent_position
         reward = 0
         done = False
         if action in [4, 5, 6] and self.stable_list[x][y] not in [1, 2]:
-            print("Akcja niedozwolona – agent nie może wykonać tej akcji na tym polu!")
+            if self.verbose:
+                print("Akcja niedozwolona – agent nie może wykonać tej akcji na tym polu!")
             reward -= 3
             observation = flatten(
                 self.original_observation_space,
